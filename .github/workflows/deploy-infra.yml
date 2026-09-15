@@ -1,0 +1,49 @@
+name: Deploy Infra (Terraform)
+
+on:
+  workflow_dispatch:
+    inputs:
+      terraform_env_dir:
+        description: "Terraform environment directory"
+        required: true
+        default: "infra/terraform/environments/dev"
+      terraform_auto_apply:
+        description: "Apply terraform changes automatically"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      - name: Terraform init
+        run: terraform -chdir=${{ github.event.inputs.terraform_env_dir }} init -input=false
+
+      - name: Terraform plan
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_vpc_id: ${{ secrets.EKS_VPC_ID }}
+          TF_VAR_subnet_ids: ${{ secrets.EKS_SUBNET_IDS }}
+        run: terraform -chdir=${{ github.event.inputs.terraform_env_dir }} plan -input=false -out=tfplan
+
+      - name: Terraform apply
+        if: ${{ github.event.inputs.terraform_auto_apply == 'true' }}
+        run: terraform -chdir=${{ github.event.inputs.terraform_env_dir }} apply -input=false -auto-approve tfplan

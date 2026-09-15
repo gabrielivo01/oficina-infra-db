@@ -1,0 +1,9 @@
+project_name = "oficina"
+environment  = "dev"
+aws_region   = "us-east-1"
+db_username  = "postgres"
+db_password  = "troque-esta-senha"
+
+# obtidos com: terraform -chdir=<checkout-do-oficina-infra-k8s>/infra/terraform/environments/dev output -raw vpc_id / -json subnet_ids
+vpc_id     = "vpc-xxxxxxxx"
+subnet_ids = ["subnet-xxxxxxxx", "subnet-yyyyyyyy"]
